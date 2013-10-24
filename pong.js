@@ -27,11 +27,17 @@ var particles = [],
     ball = {},
     paddles = [2];
 
+//Initialize other components
+var mouse = {};
+
 //Paint canvas
 function paintCanvas() {
     ctx.fillStyle = "black";
     ctx.fillRect(0,0,W,H);
-} 
+}
+
+//Note mouse movements
+canvas.addEventListener("mousemove", trackPosition, true);
 
 //Ball object
 ball = {
@@ -77,13 +83,47 @@ function draw() {
     }
 
     ball.draw();
+    update();
 };
 
 //Function for running the animation
 function animLoop() {
     requestAnimFrame(animLoop);
     draw();
-}
+};
 
 animLoop();
+
+//Function to update the screen (main for this program)
+function update() {
+    //Move the ball
+    ball.x += ball.vx;
+    ball.y += ball.vy;
+
+    //Move paddles with mouse
+    if (mouse.x && mouse.y) {
+        for (var i = 1; i < paddles.length; i++) {
+            p = paddles[i];
+            p.x = mouse.x - p.w/2;
+        }
+    }
+};
+
+//Function to track mouse position
+function trackPosition(e) {
+    mouse.x = e.pageX;
+    mouse.y = e.pageY;
+};
+
+
+
+
+
+
+
+
+
+
+
+
 
