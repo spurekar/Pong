@@ -10,6 +10,14 @@ window.requestAnimFrame = (function () {
     }; 
 })();
 
+window.cancelRequestAnimFrame = ( function() {
+    return window.cancelAnimationFrame ||
+    window.webkitCancelRequestAnimationFrame ||
+    window.mozCancelRequestAnimationFrame || 
+    window.oCancelRequestAnimationFrame ||
+    window.msCancelRequestAnimationFrame ||
+    clearTimeout
+})();
 
 //Initialize canvas and required variables
 var canvas = document.getElementById("canvas"),
@@ -17,27 +25,44 @@ var canvas = document.getElementById("canvas"),
     W = window.innerWidth,
     H = window.innerHeight;
 
-//Canvas properties
-canvas.width = W;
-canvas.height = H;
-ctx.fillRect(0,0,W,H);
-
 //Initialize game pieces
-var particles = [],
-    ball = {},
+var ball = {},
     paddles = [2];
 
 //Initialize other components
-var mouse = {};
-
-//Paint canvas
-function paintCanvas() {
-    ctx.fillStyle = "black";
-    ctx.fillRect(0,0,W,H);
-}
+var mouse = {},
+    points = 0, //current score
+    init,
+    over = 0, //set to 1 when game ends
+    paddleHit;
 
 //Note mouse movements
 canvas.addEventListener("mousemove", trackPosition, true);
+
+//Canvas properties
+canvas.width = W;
+canvas.height = H;
+
+//Paint canvas
+function paintCanvas() {
+    ctx.fillStyle = "navy";
+    ctx.fillRect(0,0,W,H);
+}
+
+//Paddle object
+function Paddle(pos) {
+    //height and width
+    this.h = 5;
+    this.w = 150;
+
+    //position
+    this.x = W/2 - this.w/2;
+    this.y = (pos == "top") ? 0 : H - this.h;
+}
+
+//Initialize new paddles
+paddles.push(new Paddle("bottom"));
+paddles.push(new Paddle("top"));
 
 //Ball object
 ball = {
@@ -58,21 +83,6 @@ ball = {
     }
 };
 
-//Paddle object
-function paddle(pos) {
-    //height and width
-    this.h = 5;
-    this.w = 150;
-
-    //position
-    this.x = W/2 - this.w/2;
-    this.y = (pos == "top") ? 0 : H - this.h;
-};
-
-//Initialize new paddles
-paddles.push(new paddle("bottom"));
-paddles.push(new paddle("top"));
-
 //Draw everything on canvas
 function draw() {
     paintCanvas();
@@ -80,11 +90,17 @@ function draw() {
         p = paddles[i];
         ctx.fillStyle = "white";
         ctx.fillRect(p.x,p.y,p.w,p.h);
-    }
+    };
 
     ball.draw();
     update();
-};
+}
+
+//Function to track mouse position
+function trackPosition(e) {
+    mouse.x = e.pageX;
+    mouse.y = e.pageY;
+}
 
 //Function for running the animation
 function animLoop() {
@@ -96,9 +112,6 @@ animLoop();
 
 //Function to update the screen (main for this program)
 function update() {
-    //Move the ball
-    ball.x += ball.vx;
-    ball.y += ball.vy;
 
     //Move paddles with mouse
     if (mouse.x && mouse.y) {
@@ -107,23 +120,97 @@ function update() {
             p.x = mouse.x - p.w/2;
         }
     }
+
+    //Move the ball
+    ball.x += ball.vx;
+    ball.y += ball.vy;
+
+    //Handle collisions
+    //on paddles
+    p1 = paddles[1]; //bottom
+    p2 = paddles[2]; //top
+
+    if(collision(ball,p1)) {
+        collideAction(ball,p1);
+    }
+
+    else if(collision(ball,p2)) {
+        collideAction(ball,p2);
+    }
+
+    else {
+        //on top wall
+        if (ball.y + ball.r > H) {
+            ball.y = H - ball.r;
+            gameOver();
+        }
+        //on bottom wall
+        else if (ball.y < 0) {
+            ball.y = ball.r;
+            gameOver();
+        }
+
+        //on vertical walls
+        //on left wall
+        if (ball.x - ball.r < 0) {
+            ball.vx = -ball.vx;
+            ball.x = ball.r;
+        }
+        //on right wall
+        else if (ball.x + ball.r > W) {
+            ball.vx = -ball.vx;
+            ball.x = W - ball.r;
+        }
+    }
+}
+
+//Function to check collision btwn ball and paddle
+function collision(b,p) {
+    if (b.x + ball.r >= p.x && b.x - ball.r <= p.x + p.w) {
+        if (b.y >= (p.y - p.h) && p.y > 0) {
+            paddleHit = 1;
+            return true;
+        }
+        else if (b.y <= p.h && p.y == 0) {
+            paddleHit = 2;
+            return true;
+        }
+        else
+            return false;
+    }
+}
+
+
+//Function which handles a collision
+function collideAction(ball, p) {
+    ball.vy = -ball.vy;
+
+    if (paddleHit == 1) {
+        ball.y = p.y - p.h;
+        //particlePos.y = ball.y + ball.r;
+        //multiplier = -1;
+    }
+    else if (paddleHit == 2) {
+        ball.y = p.h + ball.r;
+        //particlePos.y = ball.y - ball.r;
+        //multiplier = 1;
+    };
+
+    points++;
+
 };
 
-//Function to track mouse position
-function trackPosition(e) {
-    mouse.x = e.pageX;
-    mouse.y = e.pageY;
+function gameOver() {
+    ctx.fillStyle = "white";
+    ctx.font = "20px Arial, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("Game Over! You scored " + points + " points!", W/2, H/2 + 25);
+
+    //stop animation
+    cancelRequestAnimFrame(init);
+
+    //set a game over flag
+    over = 1;
 };
-
-
-
-
-
-
-
-
-
-
-
-
 
