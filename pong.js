@@ -155,7 +155,7 @@ function draw() {
 
 //Function for running the animation
 function animLoop() {
-    requestAnimFrame(animLoop);
+    init = requestAnimFrame(animLoop);
     draw();
 };
 
